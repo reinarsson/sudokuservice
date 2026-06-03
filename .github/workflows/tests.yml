@@ -1,0 +1,64 @@
+name: Tests and Coverage
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest-cov
+
+      - name: Run tests with coverage
+        id: pytest
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m pytest tests/ \
+            --cov=src \
+            --cov-report=term-missing \
+            --cov-report=json \
+            --cov-fail-under=80 \
+            -v 2>&1 | tee pytest_output.txt
+
+      - name: Post coverage comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('pytest_output.txt', 'utf8');
+            const passed = '${{ steps.pytest.outcome }}' === 'success';
+            const icon = passed ? '✅' : '❌';
+            const trimmed = output.length > 3000
+              ? '...(truncated)\n' + output.slice(-3000)
+              : output;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🧪 Test & Coverage Report\n\n` +
+                    `${icon} ${passed ? 'All tests passed, coverage ≥ 80%' : 'Tests failed or coverage < 80%'}\n\n` +
+                    `<details><summary>Full output</summary>\n\n\`\`\`\n${trimmed}\n\`\`\`\n</details>`
+            });
+
+      - name: Fail if tests or coverage threshold not met
+        if: steps.pytest.outcome == 'failure'
+        run: exit 1

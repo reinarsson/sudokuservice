@@ -1,0 +1,11 @@
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "src/web/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "if __name__",
+    "pragma: no cover",
+]
