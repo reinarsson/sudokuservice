@@ -4,6 +4,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
+from authenticationlib import AuthService
+
 from api.v1.schemas.auth import (
     LoginRequest,
     LogoutRequest,
@@ -14,7 +16,6 @@ from api.v1.schemas.auth import (
     TokenResponse,
 )
 from core.dependencies import get_auth_service
-from domain.interfaces.auth_service import AuthService
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 

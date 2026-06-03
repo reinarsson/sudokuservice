@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from authenticationlib import (
+    AuthService,
+    InMemoryTokenRepository,
+    InMemoryUserRepository,
+    JwtHandler,
+    PasswordHasher,
+)
+
 from core.config import Settings
-from domain.services.auth_service import AuthServiceImpl
 from domain.services.sudoku_service import SudokuServiceImpl
-from infrastructure.repositories.in_memory_token_repository import InMemoryTokenRepository
-from infrastructure.repositories.in_memory_user_repository import InMemoryUserRepository
-from infrastructure.security.jwt_handler import JwtHandler
-from infrastructure.security.password_hasher import PasswordHasher
 
 _user_repo = InMemoryUserRepository()
 _token_repo = InMemoryTokenRepository()
@@ -20,7 +23,7 @@ def get_settings() -> Settings:
     return Settings()
 
 
-def get_auth_service() -> AuthServiceImpl:
+def get_auth_service() -> AuthService:
     """Build and return the AuthService with all dependencies wired."""
     settings = get_settings()
     jwt_handler = JwtHandler(
@@ -30,7 +33,7 @@ def get_auth_service() -> AuthServiceImpl:
         refresh_token_expire_minutes=settings.refresh_token_expire_minutes,
     )
     password_hasher = PasswordHasher()
-    return AuthServiceImpl(
+    return AuthService(
         user_repository=_user_repo,
         token_repository=_token_repo,
         password_hasher=password_hasher,
