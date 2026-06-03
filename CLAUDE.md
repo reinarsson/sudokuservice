@@ -75,6 +75,16 @@ src/
 
 **pytest.ini** adds both `src/` and `tests/` to `sys.path` (`pythonpath = src tests`) and sets `asyncio_mode = auto`. Integration tests use `httpx.AsyncClient` with `ASGITransport` and an `autouse` fixture that clears the in-memory repos between tests.
 
+## Git workflow — mandatory for all agents
+
+1. **Never commit directly to `main`.** Always start by creating a feature branch:
+   ```bash
+   git checkout -b feat/your-feature-name
+   ```
+2. Do all work on that branch and commit changes there.
+3. Before opening a PR, run `pytest --cov=src --cov-fail-under=80`. Do not open a PR if coverage is below 80%.
+4. Open a PR to merge into `main` using `gh pr create`.
+
 ## Code Standards
 
 - **Python 3.12+**, `from __future__ import annotations` in every file
