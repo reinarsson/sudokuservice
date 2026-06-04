@@ -21,10 +21,19 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install sibling libraries
+        run: |
+          pip install "sudokulib @ git+https://github.com/reinarsson/sudokulib.git@main"
+          pip install "authenticationlib @ git+https://github.com/reinarsson/authenticationlib.git@main"
+
       - name: Install dependencies
-        run: pip install -r requirements.txt pytest-cov
+        run: |
+          pip install fastapi uvicorn "pydantic[email]" pydantic-settings httpx dash dash-bootstrap-components
+          pip install pytest pytest-asyncio pytest-cov
 
       - name: Run tests with coverage
+        env:
+          PYTHONPATH: src:tests
         id: pytest
         continue-on-error: true
         shell: bash
