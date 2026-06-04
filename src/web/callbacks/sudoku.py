@@ -14,6 +14,7 @@ from web.layouts.sudoku import render_grid
 
 _settings = Settings()
 _SOLVE_URL = f"http://{_settings.api_host}:{_settings.api_port}/api/v1/sudoku/solve"
+_HTTP_TIMEOUT = 30.0
 
 GRID_SIZE = 9
 
@@ -104,7 +105,7 @@ def handle_solve(
     if auth_data and "access_token" in auth_data:
         headers["Authorization"] = f"Bearer {auth_data['access_token']}"
 
-    with httpx.Client(timeout=30.0) as client:
+    with httpx.Client(timeout=_HTTP_TIMEOUT) as client:
         response = client.post(_SOLVE_URL, json={"board": board}, headers=headers)
 
     if response.status_code in (400, 401):
