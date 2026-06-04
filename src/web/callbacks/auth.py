@@ -7,6 +7,7 @@ from core.config import Settings
 
 _settings = Settings()
 _BASE_URL = f"http://{_settings.api_host}:{_settings.api_port}/api/v1/auth"
+_HTTP_TIMEOUT = 10.0
 
 
 @callback(
@@ -29,7 +30,7 @@ def handle_login(
         error_msg = html.Span("Please fill in all fields.", style={"color": "red"})
         return error_msg, no_update, no_update
 
-    with httpx.Client() as client:
+    with httpx.Client(timeout=_HTTP_TIMEOUT) as client:
         response = client.post(
             f"{_BASE_URL}/login",
             json={"username": username, "password": password},
@@ -64,7 +65,7 @@ def handle_register(
     if not username or not email or not password:
         return html.Span("Please fill in all fields.", style={"color": "red"})
 
-    with httpx.Client() as client:
+    with httpx.Client(timeout=_HTTP_TIMEOUT) as client:
         response = client.post(
             f"{_BASE_URL}/register",
             json={"username": username, "email": email, "password": password},

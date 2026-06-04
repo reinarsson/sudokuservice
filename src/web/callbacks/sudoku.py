@@ -14,6 +14,7 @@ from web.layouts.sudoku import render_grid
 
 _settings = Settings()
 _SOLVE_URL = f"http://{_settings.api_host}:{_settings.api_port}/api/v1/sudoku/solve"
+_HTTP_TIMEOUT = 30.0
 
 GRID_SIZE = 9
 
@@ -82,7 +83,11 @@ def handle_upload(
 
 
 @callback(
-    Output("solution-card", "children"),
+    [
+        Output("solution-card", "children"),
+        Output("url", "pathname", allow_duplicate=True),
+        Output("auth-store", "data", allow_duplicate=True),
+    ],
     Input("solve-button", "n_clicks"),
     [State("puzzle-store", "data"), State("auth-store", "data")],
     prevent_initial_call=True,
@@ -91,32 +96,39 @@ def handle_solve(
     n_clicks: int | None,
     board: list[list[int]] | None,
     auth_data: dict[str, str] | None,
-) -> object:
+) -> tuple[object, object, object]:
     """Send the puzzle to the solver API and display the solution."""
     if board is None:
-        return no_update
+        return no_update, no_update, no_update
 
     headers = {}
     if auth_data and "access_token" in auth_data:
         headers["Authorization"] = f"Bearer {auth_data['access_token']}"
 
-    with httpx.Client() as client:
+    with httpx.Client(timeout=_HTTP_TIMEOUT) as client:
         response = client.post(_SOLVE_URL, json={"board": board}, headers=headers)
+
+    if response.status_code in (400, 401):
+        return no_update, "/login", None
 
     if response.status_code != 200:
         detail = response.json().get("detail", "Solve failed.")
-        return html.Span(detail, style={"color": "red"})
+        return html.Span(detail, style={"color": "red"}), no_update, no_update
 
     data = response.json()
     solution = data["solution"]
     original = data["board"]
 
-    return dbc.Card(
-        dbc.CardBody(
-            [
-                html.H5("Solution", className="text-center mb-3"),
-                render_grid(solution, original=original),
-            ]
+    return (
+        dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H5("Solution", className="text-center mb-3"),
+                    render_grid(solution, original=original),
+                ]
+            ),
+            style={"maxWidth": "420px"},
         ),
-        style={"maxWidth": "420px"},
+        no_update,
+        no_update,
     )
