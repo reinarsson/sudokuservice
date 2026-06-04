@@ -1,6 +1,8 @@
-# sudokusolver
+# sudokuservice
 
 A service that solves Sudoku puzzles and provides a JWT-based authentication API with a Dash web frontend.
+
+Uses [sudokulib](https://github.com/reinarsson/sudokulib) for puzzle solving and [authenticationlib](https://github.com/reinarsson/authenticationlib) for authentication.
 
 ## Services
 
@@ -30,20 +32,29 @@ Interactive API docs are available at **http://localhost:8000/docs**.
 
 ## API endpoints
 
-All endpoints are under `/api/v1/auth`.
-
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/api/v1/auth/register` | Create a new user account |
 | `POST` | `/api/v1/auth/login` | Authenticate and receive tokens |
 | `POST` | `/api/v1/auth/refresh` | Rotate tokens using a refresh token |
 | `POST` | `/api/v1/auth/logout` | Revoke a refresh token |
+| `POST` | `/api/v1/sudoku/solve` | Solve a sudoku puzzle |
 
 ### Token flow
 
 - **Login** returns an `access_token` (30 min) and a `refresh_token` (7 days)
 - **Refresh** issues a new token pair and revokes the old refresh token
 - **Logout** revokes the refresh token; using it afterwards returns `400`
+
+### Sudoku solve
+
+```bash
+curl -X POST http://localhost:8000/api/v1/sudoku/solve \
+  -H "Content-Type: application/json" \
+  -d '{"board": [[5,3,0,0,7,0,0,0,0],[6,0,0,1,9,5,0,0,0],...]}'
+```
+
+Returns `{"board": [[...]], "solution": [[...]]}`.
 
 ### Configuration
 
@@ -59,36 +70,21 @@ All settings are loaded from environment variables with the `AUTH_` prefix:
 | `AUTH_API_PORT` | `8000` | API port |
 | `AUTH_DASH_PORT` | `8050` | Dash port |
 
-> **Note:** Users and tokens are stored in memory and are lost on restart. To persist data, implement the `UserRepository` and `TokenRepository` interfaces in `src/domain/interfaces/` with a database-backed adapter.
+> **Note:** Users and tokens are stored in memory and are lost on restart. Implement the `UserRepository` and `TokenRepository` protocols from `authenticationlib` with a database-backed adapter to persist data.
 
 ## Web frontend
 
-The Dash app (`http://localhost:8050`) provides login and register pages. It communicates with the FastAPI service via HTTP.
+The Dash app (`http://localhost:8050`) provides login, register, and sudoku pages. It communicates with the FastAPI service via HTTP.
 
 Routes:
 - `/` — login page
 - `/register` — registration page
-
-## Sudoku solver
-
-The `SudokuSolver` class in `src/sudoku_solver.py` solves a 9×9 board using linear programming (PuLP/CBC). Pass a 9×9 list of integers where `0` represents an empty cell:
-
-```python
-from sudoku_solver import SudokuSolver
-
-board = [
-    [5, 3, 0, 0, 7, 0, 0, 0, 0],
-    [6, 0, 0, 1, 9, 5, 0, 0, 0],
-    # ...
-]
-solution = SudokuSolver(board).solve()
-```
+- `/sudoku` — sudoku solver (auth-gated)
 
 ## Tests
 
 ```bash
 pytest                                  # all tests
-pytest tests/unit/                      # unit tests only
 pytest tests/integration/               # integration tests only
 pytest --cov=src --cov-fail-under=80    # with coverage gate
 ```
@@ -97,24 +93,25 @@ pytest --cov=src --cov-fail-under=80    # with coverage gate
 
 **Build**
 ```bash
-docker build -t sudokusolver .
+docker build -t sudokuservice .
 ```
 
 **Run**
 ```bash
-docker run --rm sudokusolver
+docker run --rm sudokuservice
 ```
 
 **Test**
 ```bash
-docker run --rm sudokusolver python -m pytest tests/
+docker run --rm sudokuservice python -m pytest tests/
 ```
 
 ## GitHub Actions
 
 Two workflows run on every pull request:
 
-- **Tests and Coverage** (`tests.yml`) — runs the test suite with an 80% coverage gate and posts a report as a PR comment
+- **CI** (`ci.yml`) — runs the test suite against Python 3.11 and 3.12 with an 80% coverage gate
+- **Tests and Coverage** (`tests.yml`) — runs tests and posts a coverage report as a PR comment
 - **Claude PR Review** (`claude-review.yml`) — currently disabled; re-enable by removing `if: false` from the job
 
 The review workflow requires one repository secret:
